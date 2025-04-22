@@ -1,0 +1,183 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Budget Tracker</title>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: rgb(243, 243, 243);
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .tracker-container {
+            text-align: left;
+            background: #FDB7EA;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            text-align: center;
+            background-color:#B1F8F2;
+            font-size: 35px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        h2{
+            background-color:#FFFF82;
+            font-size:24px;
+            padding:10px;
+            border-radius:5px;
+            text-align:left;
+            font-weight:bold;
+            Color:purple;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        form input, form select, form textarea {
+            font-family:Serif, Courier, monospace; /* Font for form elements */
+            font-size: 16px; /* Font size for form elements */
+        }
+        .expense-item {
+            background-color:#BBD1EA;  
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;  /* Space between list items */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);  /* Subtle shadow for better visibility */
+            font-size: 16px;
+        }
+        
+        .expense-item:hover {
+            background-color:#77FF94;  /* Slightly darker blue on hover */
+        }
+
+        .expenses-container {
+            max-height: 100px;  /* Set a max height for the scrollable area */
+            overflow-y: auto;  /* Enable vertical scrolling */
+            padding-right: 10px;  /* Prevent content from getting cut off */
+            margin-bottom: 20px;
+        }
+        
+        .button-container {
+            display: flex;
+            justify-content: space-between; /* Distribute space between buttons */
+            margin-top: 20px;
+        }
+
+
+        button {
+            margin: 10px 5px 0 0;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: rgb(20, 152, 37);
+            color: white;
+            cursor: pointer;
+            font-size:15px;
+            font-family:serif;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .highlighted-total {
+            font-size: 24px;  /* Larger font size */
+            font-weight: bold;  /* Make it bold */
+            color: #ff4500;  /* Orange-red color */
+            background-color: #f0f8ff;  /* Light blue background */
+            padding: 10px;  /* Add some padding */
+            border-radius: 5px;  /* Rounded corners */
+            text-align: left;  
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);  /* Subtle shadow */
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="tracker-container">
+        <h1>📝My Expense Tracker📌</h1>
+        
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+
+            {% if form.errors %}
+            <div class="alert alert-danger">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+            <button type="submit">Add Expense</button>
+        </form>
+        
+        <h2>🔎Expense List🧾</h2>
+        <div class="expenses-container">
+            <ul>
+                {% if expenses %}
+                    {% for item in expenses %}
+                        <li class="expense-item">
+                            {{ item.category }}: {{ item.description|default:"No description provided" }} 
+                            {{ item.currency }}{{ item.amount }} - {{ item.date }}
+                        </li>
+                    {% endfor %}
+                {% else %}
+                    <li>No expenses recorded yet.</li>
+                {% endif %}
+            </ul>
+        </div>
+        
+        <div class="button-container">
+            <button id="calculate-total" type="button">Calculate</button>
+            <button type="button" onclick="location.href='{% url 'budget:clear_expenses' %}'">Reset</button>
+        </div>
+            <p id="total-display" class="highlighted-total"> 💸Total Expenses: {{ total_amount|floatformat:2 }}</p>
+    </div>
+
+    <script>
+        document.getElementById('calculate-total').addEventListener('click', function () {
+            // Send the request to the server to calculate the total
+            fetch("{% url 'budget:calculate_total' %}")
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Handle response and update total display
+                    if (data.total !== undefined && data.currency !== undefined) {
+                        const totalAmount = data.total;  // Get the total amount
+                        const currency = data.currency;  // Get the currency
+                        document.getElementById('total-display').innerText = `Total Expenses: ${currency} ${totalAmount}`;
+                    } else {
+                        document.getElementById('total-display').innerText = 'Error calculating total.';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching total:', error);
+                    document.getElementById('total-display').innerText = 'Error calculating total.';
+                });
+        });
+    </script>
+</body>
+</html>
+
